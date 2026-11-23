@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Prompt Lab - บันทึกการสั่งงาน AI</title>
+
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --line: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --good: #4ade80;
+    --bad: #f87171;
+    --warn: #facc15;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Sarabun", "Noto Sans Thai", sans-serif;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 16px 60px; }
+
+  /* ---------- ส่วนหัว ---------- */
+  .hero { text-align: center; padding: 48px 0 24px; }
+  .hero .icon { font-size: 54px; display: inline-block; animation: float 3s ease-in-out infinite; }
+  .hero h1 { margin: 8px 0 6px; font-size: 32px; }
+  .hero p  { margin: 0 auto; max-width: 560px; color: var(--muted); }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+  /* ---------- สรุป 30 วินาที สำหรับคนไม่รู้เทคนิค ---------- */
+  .summary {
+    background: linear-gradient(135deg, #0c4a6e, #1e3a8a);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin: 12px 0 24px;
+  }
+  .summary h2 { margin: 0 0 6px; font-size: 18px; }
+  .summary p  { margin: 0; }
+
+  /* ---------- เมนูลัด ---------- */
+  nav { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 28px; }
+  nav a {
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 14px;
+    text-decoration: none;
+  }
+  nav a:hover { background: var(--accent); color: var(--bg); }
+
+  h2.sec { font-size: 24px; margin: 40px 0 8px; border-left: 5px solid var(--accent); padding-left: 12px; }
+  .lead { color: var(--muted); margin: 0 0 16px; }
+
+  /* ---------- การ์ดรอบคำสั่ง ---------- */
+  .round {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .round h3 { margin: 0 0 10px; font-size: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tag {
+    font-size: 12px;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 12px;
+    padding: 1px 10px;
+    font-weight: bold;
+  }
+  .label { font-size: 13px; color: var(--muted); margin: 12px 0 4px; font-weight: bold; }
+
+  .prompt {
+    background: #0b1220;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
+    position: relative;
+  }
+  .copy {
+    float: right;
+    margin: -4px 0 6px 8px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 2px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .copy:hover { background: var(--accent); color: var(--bg); }
+
+  .box { border-radius: 10px; padding: 10px 14px; margin-top: 8px; font-size: 15px; }
+  .box.result { background: rgba(56,189,248,0.12); border-left: 4px solid var(--accent); }
+  .box.problem { background: rgba(248,113,113,0.12); border-left: 4px solid var(--bad); }
+  .box.change { background: rgba(250,204,21,0.12); border-left: 4px solid var(--warn); }
+  .todo { color: var(--warn); font-weight: bold; }
+
+  /* ---------- ตารางก่อน-หลัง ---------- */
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 15px; }
+  th { background: #0b1220; color: var(--accent); }
+  tr:last-child td { border-bottom: none; }
+
+  /* ---------- สูตรคำสั่ง ---------- */
+  .formula { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .formula div {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .formula b { color: var(--accent); }
+
+  .links a { color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 50px; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <!-- ===== ส่วนหัว ===== -->
+  <header class="hero">
+    <div class="icon">🧪</div>
+    <h1>AI Prompt Lab</h1>
+    <p>บันทึกวิธีที่ผมสั่ง AI ให้สร้างแชทบอทออกกำลังกายตั้งแต่คำสั่งแรก จนได้ผลงานที่ใช้งานได้จริง</p>
+    <p style="margin-top:6px;font-size:14px;">โดย 【แก้ตรงนี้: ชื่อ-นามสกุลหรือชื่อเล่นของเจ】</p>
+  </header>
+
+  <!-- ===== สรุปสำหรับคนไม่รู้เทคนิค ===== -->
+  <section class="summary">
+    <h2>📌 สรุปสั้นๆ ใน 30 วินาที</h2>
+    <p>
+      AI ไม่ได้เก่งเองทุกอย่าง ผลลัพธ์ดีหรือไม่ขึ้นอยู่กับ <b>วิธีสั่ง</b> ผมจึงบันทึกว่าสั่งอย่างไรในแต่ละรอบ
+      ผลที่ได้เป็นอย่างไร และปรับคำสั่งอย่างไรให้ดีขึ้น ผลลัพธ์คือแชทบอท FitBot ที่ตอบคำถามเรื่องออกกำลังกายได้ประมาณ 120 ข้อ
+      เปิดใช้งานได้จริงผ่านลิงก์ด้านล่าง
+    </p>
+    <p class="links" style="margin-top:10px;">
+      🔗 ลองเล่นผลงาน: <a href="【แก้ตรงนี้: ลิงก์ GitHub Pages ของ FitBot】">กดที่นี่</a>
+    </p>
+  </section>
+
+  <nav>
+    <a href="#journey">เส้นทางการสั่งงาน</a>
+    <a href="#compare">เทียบก่อน-หลัง</a>
+    <a href="#mistakes">AI พลาดตรงไหน</a>
+    <a href="#formula">สูตรที่ได้เรียนรู้</a>
+    <a href="#honest">ใช้ AI ช่วยตรงไหน</a>
+  </nav>
+
+  <!-- ===== เส้นทางการสั่งงาน ===== -->
+  <h2 class="sec" id="journey">🗺️ เส้นทางการสั่งงาน 5 รอบ</h2>
+  <p class="lead">แต่ละรอบคือคำสั่งที่ผมพิมพ์จริง (ย่อบางส่วนให้อ่านง่าย) ตามด้วยผลและสิ่งที่ผมปรับ</p>
+
+  <!-- รอบ 1 -->
+  <div class="round">
+    <h3><span class="tag">รอบ 1</span> ถามหาไอเดียกว้างๆ</h3>
+    <div class="label">คำสั่งที่ใช้</div>
+    <div class="prompt"><button class="copy">คัดลอก</button>ขอไอเดียผลงานสาย IT ใส่ใน portfolio สำหรับคน non tech หรือมีเข้าใจน้อย โดยมีเงื่อนไข
+1. เป้าหมาย: สมัครเรียนคณะเทคโนโลยีสารสนเทศ
+2. รูปแบบผลงาน: ดูมีความเป็น IT สูง ตรงกับสายที่จะเข้าเรียน</div>
+    <div class="box result"><b>ผลที่ได้:</b> AI เสนอไอเดีย 6 แบบ เช่น เว็บแก้ปัญหา แดชบอร์ด แชทบอท เกม และแนะนำวิธีนำเสนอให้คนไม่รู้เทคนิคเข้าใจ</div>
+    <div class="box change"><b>ทำไมคำสั่งนี้ได้ผล:</b> ผมบอก <b>เป้าหมาย</b> (สมัครคณะ IT) และ <b>ผู้ดู</b> (คนไม่รู้เทคนิค) ไว้ชัด AI จึงเลือกไอเดียที่ดูแล้วเข้าใจง่าย</div>
+  </div>
+
+  <!-- รอบ 2 -->
+  <div class="round">
+    <h3><span class="tag">รอบ 2</span> เลือกไอเดียและกำหนดเงื่อนไขการทำ</h3>
+    <div class="label">คำสั่งที่ใช้</div>
+    <div class="prompt"><button class="copy">คัดลอก</button>ตรงข้อ 3 เราสนใจ เงื่อนไขคือ
+1. เป้าหมาย: ใช้ได้จริง มีลิงก์ให้อาจารย์เข้ามาใช้งานได้
+2. รูปแบบการสอนทำ: สอนละเอียด เช่น ต้องกดตรงไหน มองไปทางไหน
+3. โค้ด: ให้เขียนโค้ดออกมา อธิบายพอเข้าใจ และกด copy ได้</div>
+    <div class="box result"><b>ผลที่ได้:</b> AI สอนทีละขั้นตั้งแต่สมัคร GitHub ไปจนถึงเปิดลิงก์ พร้อมโค้ดแชทบอทที่ copy ไปวางได้เลย</div>
+    <div class="box change"><b>ทำไมคำสั่งนี้ได้ผล:</b> ผมระบุ <b>รูปแบบคำตอบ</b> ที่ต้องการ 3 ข้อ (ลิงก์ใช้ได้จริง / สอนละเอียด / โค้ด copy ได้) AI จึงไม่ตอบกว้างๆ</div>
+  </div>
+
+  <!-- รอบ 3 -->
+  <div class="round">
+    <h3><span class="tag">รอบ 3</span> เปลี่ยนหัวข้อ และให้ข้อมูลเนื้อหาเอง</h3>
+    <div class="label">คำสั่งที่ใช้</div>
+    <div class="prompt"><button class="copy">คัดลอก</button>ช่วยเปลี่ยนโค้ดจากหัวข้อถามตอบเกี่ยวกับคณะเทคโนโลยีสารสนเทศ เป็นแนะนำเรื่องการออกกำลังกายแทน เงื่อนไข
+1. บทพูดแรก: เปลี่ยนเป็น "สวัสดีครับ ยินดีให้คำแนะนำเกี่ยวกับการออกกำลังกาย"
+2. สำหรับถามตอบ: (แนบรายการคำถาม 8 หมวด หมวดละ 8 ข้อ)</div>
+    <div class="box result"><b>ผลที่ได้:</b> AI แก้โค้ดเดิม ทำปุ่มเลือกหมวด และใส่คำถามครบ 8 หมวดตามที่ผมกำหนด</div>
+    <div class="box change"><b>ทำไมคำสั่งนี้ได้ผล:</b> ผม <b>ให้ตัวอย่างคำถามเอง</b> เป็นรายการชัดเจน แทนที่จะพูดว่า "ทำให้ครบๆ" และสั่ง <b>ข้อความตายตัว</b> สำหรับบทพูดแรก</div>
+  </div>
+
+  <!-- รอบ 4 -->
+  <div class="round">
+    <h3><span class="tag">รอบ 4</span> ปรับหน้าตาและเพิ่มเนื้อหา</h3>
+    <div class="label">คำสั่งที่ใช้</div>
+    <div class="prompt"><button class="copy">คัดลอก</button>ช่วยเปลี่ยนชื่อบอทจาก น้องฟิต เป็น FitBot และโทนสีเป็นแนวสีส้มๆ ตกแต่งบางจุดให้ดูน่าสนใจ อาจจะอิโมจิขยับได้หรือการจัดเรียงที่เห็นได้ชัดและดูสะอาดตา
+ส่วนโค้ดอยากให้เพิ่มหัวข้อ (แนบคำถามเพิ่มอีก 6 หมวด เช่น ความเข้าใจผิด คำถามแปลกๆ อาการหลังออกกำลังกาย)</div>
+    <div class="box result"><b>ผลที่ได้:</b> ได้ธีมสีส้ม อีโมจิที่เด้งได้ จุดกำลังพิมพ์ และหมวดใหม่รวมเป็น 14 หมวด</div>
+    <div class="box change"><b>ทำไมคำสั่งนี้ได้ผล:</b> แยก <b>งานหน้าตา</b> กับ <b>งานเนื้อหา</b> เป็นสองส่วนในคำสั่งเดียว และบอกความรู้สึกที่อยากได้ (สะอาดตา น่าสนใจ) ไม่ใช่แค่บอกสี</div>
+  </div>
+
+  <!-- รอบ 5 -->
+  <div class="round">
+    <h3><span class="tag">รอบ 5</span> 【แก้ตรงนี้: ถ้าเจมีรอบแก้ไขเพิ่ม เช่น ทดสอบแล้วเจอบั๊ก ให้เล่าที่นี่】</h3>
+    <div class="label">คำสั่งที่ใช้</div>
+    <div class="prompt"><button class="copy">คัดลอก</button>【แก้ตรงนี้: วางคำสั่งจริงที่เจพิมพ์ ถ้าไม่มีรอบที่ 5 ให้ลบการ์ดนี้ทั้งก้อน ตั้งแต่ &lt;div class="round"&gt; จนถึง &lt;/div&gt; ที่ปิดการ์ด】</div>
+    <div class="box result"><b>ผลที่ได้:</b> <span class="todo">【แก้ตรงนี้】</span></div>
+    <div class="box change"><b>ทำไมคำสั่งนี้ได้ผล/ไม่ได้ผล:</b> <span class="todo">【แก้ตรงนี้】</span></div>
+  </div>
+
+  <!-- ===== เทียบก่อน-หลัง ===== -->
+  <h2 class="sec" id="compare">⚖️ เทียบคำสั่งแบบกว้าง กับแบบชัดเจน</h2>
+  <p class="lead">ตัวอย่างว่าถ้าผมสั่งสั้นๆ แบบแรก กับที่สั่งจริง ผลต่างกันอย่างไร</p>
+  <table>
+    <tr><th></th><th>❌ คำสั่งกว้างๆ (ตัวอย่างสมมติ)</th><th>✅ คำสั่งที่ผมใช้จริง</th></tr>
+    <tr>
+      <td><b>คำสั่ง</b></td>
+      <td>"ทำแชทบอทให้หน่อย"</td>
+      <td>ระบุเป้าหมาย ผู้ดู รูปแบบคำตอบ และตัวอย่างคำถามเอง</td>
+    </tr>
+    <tr>
+      <td><b>สิ่งที่น่าจะเกิด</b></td>
+      <td>AI ต้องเดาเองว่าหัวข้ออะไร ใช้ภาษาอะไร เผยแพร่อย่างไร</td>
+      <td>ได้ผลงานตรงความต้องการ มีลิงก์ใช้งานจริง</td>
+    </tr>
+    <tr>
+      <td><b>ผลที่ได้จริง</b></td>
+      <td><span class="todo">【แก้ตรงนี้: ถ้าเจลองสั่งแบบสั้นแล้วดูผลจริง ให้ใส่ผลที่ได้ ถ้ายังไม่ได้ลอง ให้ลบแถวนี้หรือลองสั่งดูก่อน】</span></td>
+      <td>แชทบอท FitBot 14 หมวด ประมาณ 120 ข้อ</td>
+    </tr>
+  </table>
+
+  <!-- ===== AI พลาดตรงไหน ===== -->
+  <h2 class="sec" id="mistakes">🔍 AI พลาดตรงไหน แล้วผมจับได้อย่างไร</h2>
+  <p class="lead">ส่วนที่กรรมการสนใจมากที่สุด เพราะแสดงว่าผมไม่ได้เชื่อ AI ทุกอย่าง</p>
+
+  <div class="round">
+    <h3><span class="tag">ข้อสังเกต 1</span> 【แก้ตรงนี้: ชื่อปัญหาที่เจเจอ】</h3>
+    <div class="box problem"><b>ปัญหา:</b> <span class="todo">【แก้ตรงนี้: เช่น บอทตอบผิดข้อเมื่อพิมพ์คำบางคำ / ข้อมูลไม่ตรงกับที่คาด】</span></div>
+    <div class="box change"><b>วิธีที่ผมตรวจพบและแก้:</b> <span class="todo">【แก้ตรงนี้: เจทดสอบอย่างไร แล้วสั่ง AI ให้แก้อย่างไร】</span></div>
+  </div>
+
+  <div class="round">
+    <h3><span class="tag">ข้อสังเกต 2</span> ตรวจเนื้อหาสุขภาพให้ตรงกับแหล่งที่เชื่อถือได้</h3>
+    <div class="box problem"><b>ปัญหา:</b> คำตอบเรื่องสุขภาพที่ AI เขียนเป็นข้อมูลทั่วไป ไม่ได้อ้างอิงแหล่งใดโดยเฉพาะ อาจคลาดเคลื่อนได้</div>
+    <div class="box change"><b>วิธีที่ผมแก้:</b> <span class="todo">【แก้ตรงนี้: เจไปเช็กเว็บกรมอนามัยหรือ WHO แล้วพบว่าตรงหรือไม่ตรงข้อไหน ถ้ายังไม่ได้ทำ ให้ไปเช็กอย่างน้อย 3 ข้อก่อนเขียนส่วนนี้】</span> และใส่ข้อความ "ไม่ใช่คำแนะนำทางการแพทย์" ไว้ในหัวบอท</div>
+  </div>
+
+  <!-- ===== สูตรที่ได้เรียนรู้ ===== -->
+  <h2 class="sec" id="formula">📘 สูตรเขียนคำสั่งที่ผมได้เรียนรู้</h2>
+  <p class="lead">สรุปจากการสั่งงานจริง 5 รอบ</p>
+  <div class="formula">
+    <div><b>1. บอกเป้าหมาย</b><br>บอกว่าผลงานนี้เอาไปทำอะไร (เช่น สมัครคณะ IT)</div>
+    <div><b>2. บอกผู้ดู</b><br>ใครจะเป็นคนดู ระดับความรู้เท่าไร (เช่น คนไม่รู้เทคนิค)</div>
+    <div><b>3. ระบุรูปแบบคำตอบ</b><br>อยากได้แบบไหน สอนละเอียด มีโค้ดให้ copy</div>
+    <div><b>4. ให้ข้อมูลหรือตัวอย่างเอง</b><br>แนบรายการที่ต้องการ แทนการพูดกว้างๆ</div>
+    <div><b>5. แบ่งงานเป็นรอบเล็กๆ</b><br>ทีละเรื่อง แล้วค่อยปรับต่อ ไม่สั่งทีเดียวทุกอย่าง</div>
+    <div><b>6. ตรวจทุกครั้ง</b><br>ทดสอบผลจริง และเช็กข้อมูลกับแหล่งเชื่อถือได้</div>
+  </div>
+
+  <!-- ===== ความโปร่งใส ===== -->
+  <h2 class="sec" id="honest">🤝 ผมใช้ AI ช่วยตรงไหน และผมทำเองตรงไหน</h2>
+  <table>
+    <tr><th>AI ช่วย</th><th>ผมทำเอง</th></tr>
+    <tr>
+      <td>เขียนโค้ดตามที่สั่ง และอธิบายวิธีเผยแพร่</td>
+      <td>เลือกไอเดีย กำหนดเงื่อนไข เขียนรายการคำถามทั้ง 8 + 6 หมวด ทดสอบ และตัดสินใจว่าจะปรับอะไร</td>
+    </tr>
+    <tr>
+      <td colspan="2"><span class="todo">【แก้ตรงนี้: เพิ่มของจริงอีก 1-2 ข้อ เช่น ผมอ่านโค้ดแล้วเข้าใจส่วน findAnswer / ผมแก้สีเอง】</span></td>
+    </tr>
+  </table>
+
+  <footer>
+    ทำด้วย HTML + CSS + JavaScript · เผยแพร่ด้วย GitHub Pages · 【แก้ตรงนี้: ปี / ชื่อ】
+  </footer>
+</div>
+
+<script>
+  // ===== ปุ่ม "คัดลอก" ของกล่องคำสั่งทุกกล่อง =====
+  // วนหาปุ่มที่มี class="copy" ทุกปุ่ม แล้วผูกคำสั่งให้ copy ข้อความในกล่องคำสั่งที่อยู่ด้วยกัน
+  document.querySelectorAll(".copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const box = btn.parentElement;                 // กล่อง .prompt ที่ปุ่มอยู่ข้างใน
+      const text = box.innerText.replace(btn.innerText, "").trim();
+
+      // navigator.clipboard ใช้ได้บน https (GitHub Pages เป็น https อยู่แล้ว)
+      navigator.clipboard.writeText(text).then(function () {
+        const old = btn.textContent;
+        btn.textContent = "คัดลอกแล้ว ✓";
+        setTimeout(function () { btn.textContent = old; }, 1500);
+      }).catch(function () {
+        btn.textContent = "คัดลอกไม่ได้";
+      });
+    });
+  });
+</script>
+</body>
+</html>
